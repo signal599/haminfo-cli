@@ -9,8 +9,8 @@ import { importEn } from './lib/imports/import-en.js';
 const program = new Command();
 
 program
-  .name('import-raw')
-  .description('Import FCC data into temporary tables')
+  .name('haminfo-cli')
+  .description('CLI commands for ham map')
   .version('1.0.0');
 
 program

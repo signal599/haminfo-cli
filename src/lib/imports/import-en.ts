@@ -47,7 +47,7 @@ export async function importEn() {
     const zipCode = values.zipCode as string;
 
     if (zipCode.length > 5) {
-      values.zipCode = zipCode.slice(0, 5) + "-" + zipCode.slice(5);
+      values.zipCode = `${zipCode.slice(0, 5)}-${zipCode.slice(5)}`;
     }
 
     const streetAddress = values.streetAddress as string;
