@@ -1,0 +1,66 @@
+import { projectRoot } from "../dir-helper.js";
+import { fccLicenseHd } from "../../db/schema.js";
+import { addRowHash, importFile } from "./import-helper.js";
+
+export async function importHd() {
+  const columns: string[] = [
+    "recordType",
+    "uniqueSystemIdentifier",
+    "ulsFileNumber",
+    "ebfNumber",
+    "callSign",
+    "licenseStatus",
+    "radioServiceCode",
+    "grantDate",
+    "expiredDate",
+    "cancellationDate",
+    "eligibilityRuleNum",
+    "applicantTypeCodeReserved",
+    "alien",
+    "alienGovernment",
+    "alienCorporation",
+    "alienOfficer",
+    "alienControl",
+    "revoked",
+    "convicted",
+    "adjudged",
+    "involvedReserved",
+    "commonCarrier",
+    "nonCommonCarrier",
+    "privateComm",
+    "fixed",
+    "mobile",
+    "radiolocation",
+    "satellite",
+    "developmentalOrSta",
+    "interconnectedService",
+    "certifierFirstName",
+    "certifierMi",
+    "certifierLastName",
+    "certifierSuffix",
+    "certifierTitle",
+    "gender",
+    "africanAmerican",
+    "nativeAmerican",
+    "hawaiian",
+    "asian",
+    "white",
+    "ethnicity",
+    "effectiveDate",
+    "lastActionDate",
+    "auctionId",
+    "regStatBroadServ",
+    "bandManager",
+    "typeServBroadServ",
+    "alienRuling",
+    "licenseeNameChange",
+  ];
+
+  importFile(
+    fccLicenseHd,
+    columns,
+    `${projectRoot}/downloads/HD.dat`,
+    addRowHash,
+  );
+
+}
