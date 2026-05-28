@@ -1,6 +1,7 @@
 import { projectRoot } from "../dir-helper.js";
 import { fccLicenseEn } from "../../db/schema.js";
 import { addRowHash, importFile, valuesType } from "./import-helper.js";
+import { createHash } from "crypto";
 
 export async function importEn() {
   const columns: string[] = [
@@ -62,6 +63,11 @@ export async function importEn() {
     }
 
     values.streetAddress = address.join(", ");
-  }
 
+    values.addressHash = createHash("sha1")
+      .update(
+        `${values.streetAddress}${values.city}${values.state}${values.zipCode}`,
+      )
+      .digest("hex");
+  }
 }

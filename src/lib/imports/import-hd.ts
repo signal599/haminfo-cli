@@ -62,5 +62,4 @@ export async function importHd() {
     `${projectRoot}/downloads/HD.dat`,
     addRowHash,
   );
-
 }
