@@ -1,13 +1,13 @@
-import { getTableConfig } from "drizzle-orm/mysql-core";
-import { getImportSchema } from "../schema-helper.js";
-import { ImportColumnInfo } from "../types.js";
+import { createHash } from "crypto";
+import { MySqlTable, TableConfig } from "drizzle-orm/mysql-core";
+import * as fs from "fs/promises";
+import * as readline from "readline/promises";
 import { isNumeric } from "../utils.js";
-import * as fs from "fs";
-import * as readline from "readline";
+import { ImportColumnInfo } from "../types.js";
+import { getImportSchema } from "../schema-helper.js";
+import { getTableConfig } from "drizzle-orm/mysql-core";
 import { closeDb, getDb } from "../db-helper.js";
 import { sql } from "drizzle-orm";
-import { MySqlTable, TableConfig } from "drizzle-orm/mysql-core";
-import { createHash } from "crypto";
 
 export type alterValuesType = (
   row: string,
@@ -17,79 +17,107 @@ export type alterValuesType = (
 export type valueType = string | number | null;
 export type valuesType = Record<string, valueType>;
 
-async function readLines(
-  filePath: string,
-  onLine: (line: string) => Promise<void>,
-) {
-  return new Promise<void>((resolve, reject) => {
-    const fileStream = fs.createReadStream(filePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity,
-    });
-
-    let pending = Promise.resolve();
-
-    rl.on("line", (line) => {
-      pending = pending.then(() => onLine(line)).catch(reject);
-    });
-
-    rl.on("close", () => {
-      pending.then(resolve).catch(reject);
-    });
-
-    rl.on("error", reject);
-    fileStream.on("error", reject);
-  });
-}
-
 export async function importFile(
   table: MySqlTable<TableConfig>,
   columns: string[],
   filePath: string,
   alterValues: alterValuesType | undefined,
 ) {
-  const startTime = Date.now();
+  console.time("import");
 
-  try {
-    const importSchema = getImportSchema(table, columns);
-    const { name: tableName } = getTableConfig(table);
+  const importSchema = getImportSchema(table, columns);
+  const { name: tableName } = getTableConfig(table);
 
-    const db = await getDb();
-    await db.execute(sql.raw(`TRUNCATE TABLE ${tableName}`));
+  const db = await getDb();
+  await db.execute(sql.raw(`TRUNCATE TABLE ${tableName}`));
 
-    let count = 0;
-    const batchSize = 1000;
-    let batchValues: valuesType[] = [];
+  const fd = await fs.open(filePath);
+  const fileStream = fd.createReadStream();
 
-    await readLines(filePath, async (row) => {
-      const dataRow = row.split("|").map(item => item.trim());
-      const values = buildValues(importSchema, columns, dataRow);
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
 
-      if (alterValues) {
-        alterValues(row, dataRow, values);
-      }
+  const batchSize = 1000;
+  let buffer: valuesType[] = [];
+  let paused = false;
+  let done = false;
+  let totalLines = 0;
 
-      batchValues.push(values);
-      count++;
+  // Called by the consumer to process one batch
+  let notifyConsumer: (() => void) | null = null;
 
-      if (batchValues.length === batchSize) {
-        await db.insert(table).values(batchValues as []);
-        batchValues = [];
-        console.log(count);
-      }
+  function waitForLines(): Promise<void> {
+    return new Promise((resolve) => {
+      notifyConsumer = resolve;
     });
-
-    if (batchValues.length > 0) {
-      await db.insert(table).values(batchValues as []);
-      console.log(count);
-    }
-  } finally {
-    await closeDb();
   }
 
-  const elapsed = Date.now() - startTime;
-  console.log(`Elapsed: ${elapsed}ms`);
+  rl.on("line", (row) => {
+    const dataRow = row.split("|").map((item) => item.trim());
+    const values = buildValues(importSchema, columns, dataRow);
+
+    if (alterValues) {
+      alterValues(row, dataRow, values);
+    }
+
+    buffer.push(values);
+
+    if (buffer.length >= batchSize) {
+      // We have at least enough for a batch.
+      if (!paused) {
+        paused = true;
+        rl.pause();
+      }
+
+      if (notifyConsumer) {
+        // The consumer is waiting. Wake it up.
+        const notify = notifyConsumer;
+        notifyConsumer = null;
+        notify();
+      }
+    }
+  });
+
+  rl.on("close", () => {
+    done = true;
+    if (notifyConsumer) {
+      // Wake consumer so it can drain the final partial batch
+      const notify = notifyConsumer;
+      notifyConsumer = null;
+      notify();
+    }
+  });
+
+  // Consumer loop
+  while (!done || buffer.length > 0) {
+    // Wait for a full batch unless we're at EOF
+    if (buffer.length < batchSize && !done) {
+      await waitForLines();
+      continue;
+    }
+
+    // Take up to batchSize lines from the front of the buffer
+    const batch = buffer.splice(0, batchSize);
+
+    await db.insert(table).values(batch);
+
+    totalLines += batch.length;
+    console.log(totalLines);
+
+    // Resume readline if we paused it
+    if (paused) {
+      paused = false;
+      rl.resume();
+    }
+  }
+
+  fileStream.close();
+  await fd.close();
+  await closeDb();
+
+  console.timeEnd("import");
 }
 
 function buildValues(
