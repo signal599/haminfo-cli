@@ -1,7 +1,10 @@
 import { closeDb, getDb } from "../db-helper.js";
 import { sql } from "drizzle-orm";
 
+// Calculate and update a hash for the joined table result to use when
+// updating the entity. Note: MySQL specific code.
 export async function updateHash() {
+
   const db = await getDb();
 
   const rawSql = `
