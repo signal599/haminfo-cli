@@ -1,6 +1,8 @@
-// It seems like this should work and is simpler than the version in use
-// but it throws this error with the am.dat file.
-// Claude says this is a bug in Node 24. I haven't found that anywhere else.
+// This is an alternative implementation of import-helper.ts which uses more built-in functionality.
+//
+// On Node v24.14.0 it throws the following error on the am.dat file.
+// It seems to have been fixed on later versions of node but keeping the other version since it seems
+// to be more robust.
 //
 // node:internal/readline/interface:564
 //       throw new ERR_USE_AFTER_CLOSE('readline');
