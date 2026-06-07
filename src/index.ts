@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { importHd } from './lib/imports/import-hd.js';
 import { importAm } from './lib/imports/import-am.js';
 import { importEn } from './lib/imports/import-en.js';
+import { updateHash } from './lib/imports/update-hash.js';
 
 const program = new Command();
 
@@ -32,6 +33,13 @@ program
   .description('Import am file into table')
   .action(async () => {
     await importAm();
+  });
+
+program
+  .command('update-hash')
+  .description('Update hash')
+  .action(async () => {
+    await updateHash();
   });
 
 program.parse();
