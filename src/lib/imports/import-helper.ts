@@ -107,7 +107,7 @@ export async function importFile(
     console.log(totalLines);
 
     // Resume readline if we paused it
-    if (paused) {
+    if (paused && !done) {
       paused = false;
       rl.resume();
     }
