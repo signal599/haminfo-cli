@@ -10,3 +10,7 @@ dist/index.js import-en
 dist/index.js import-am
 
 dist/index.js update-hash
+
+dist/index.js truncate-table hd
+dist/index.js truncate-table en
+dist/index.js truncate-table am

@@ -6,6 +6,7 @@ import { importHd } from './lib/imports/import-hd.js';
 import { importAm } from './lib/imports/import-am.js';
 import { importEn } from './lib/imports/import-en.js';
 import { updateHash } from './lib/imports/update-hash.js';
+import { truncateTable } from './lib/imports/truncate-table.js';
 
 const program = new Command();
 
@@ -40,6 +41,14 @@ program
   .description('Update hash')
   .action(async () => {
     await updateHash();
+  });
+
+program
+  .command('truncate-table')
+  .description('Truncate suffix')
+  .argument('<string>', 'table suffix')
+  .action(async (tableSuffix) => {
+    await truncateTable(tableSuffix)
   });
 
 program.parse();
