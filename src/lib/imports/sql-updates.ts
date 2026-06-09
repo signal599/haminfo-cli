@@ -52,6 +52,7 @@ export async function updateLicenses() {
     hs.address_hash = en.address_hash,
     hs.changed = unix_timestamp()
     WHERE hd.license_status = 'A'
+    AND hs.total_hash != hd.total_hash
   `;
 
   const result = await db.execute(sql.raw(rawSql));
