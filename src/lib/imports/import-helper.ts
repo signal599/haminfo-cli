@@ -8,6 +8,8 @@ import { getImportSchema } from "../schema-helper.js";
 import { getTableConfig } from "drizzle-orm/mysql-core";
 import { closeDb, getDb } from "../db-helper.js";
 import { sql } from "drizzle-orm";
+import logger from "../logger.js";
+import { truncateTable } from "./sql-updates.js";
 
 export type alterValuesType = (
   row: string,
@@ -27,9 +29,9 @@ export async function importFile(
 
   const importSchema = getImportSchema(table, columns);
   const { name: tableName } = getTableConfig(table);
+  await truncateTable(tableName);
 
   const db = await getDb();
-  await db.execute(sql.raw(`TRUNCATE TABLE ${tableName}`));
 
   const fd = await fs.open(filePath);
   const fileStream = fd.createReadStream();
@@ -117,6 +119,7 @@ export async function importFile(
   await fd.close();
   await closeDb();
 
+  logger.info(`${totalLines} imported into ${tableName}`);
   console.timeEnd("import");
 }
 

@@ -1,8 +1,9 @@
 import { createLogger, format, transports } from 'winston';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
+import { projectRoot } from './dir-helper.js';
 
-const logDir = join(process.cwd(), 'logs');
+const logDir = `${projectRoot}/logs`;
 mkdirSync(logDir, { recursive: true });
 const logFile = join(logDir, 'app.log');
 
