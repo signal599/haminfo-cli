@@ -12,7 +12,7 @@ dist/index.js import-am
 dist/index.js update-hash
 dist/index.js import-fcc-update
 dist/index.js import-fcc-new
-dist/index.js import-fcc-new addresses
+dist/index.js import-fcc-new-addresses
 dist/index.js delete-fcc-inactive
 dist/index.js delete-fcc-inactive-addresses
 dist/index.js delete-fcc-inactive-locations

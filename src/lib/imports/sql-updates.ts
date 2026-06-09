@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../db-helper.js";
 import logger from "../logger.js";
+import { GEOCODE_STATUS_PO_BOX } from "../constants.js";
 
 export async function truncateTable(tableName: string) {
   const db = await getDb();
@@ -56,7 +57,7 @@ export async function updateLicenses() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} existing FCC licenses updated.`;
+  const msg = `${result[0].affectedRows} existing FCC licenses updated`;
   console.log(msg);
   logger.info(msg);
 }
@@ -83,7 +84,7 @@ export async function importNewLicenses() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} new FCC licenses imported.`;
+  const msg = `${result[0].affectedRows} new FCC licenses imported`;
   console.log(msg);
   logger.info(msg);
 }
@@ -113,7 +114,7 @@ export async function importNewAddresses() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} new FCC addresses imported.`;
+  const msg = `${result[0].affectedRows} new FCC addresses imported`;
   console.log(msg);
   logger.info(msg);
 }
@@ -131,7 +132,7 @@ export async function deleteInactiveStations() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} inactive FCC stations deleted.`;
+  const msg = `${result[0].affectedRows} inactive FCC stations deleted`;
   console.log(msg);
   logger.info(msg);
 }
@@ -149,7 +150,7 @@ export async function deleteInactiveAddresses() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} inactive FCC addresses deleted.`;
+  const msg = `${result[0].affectedRows} inactive FCC addresses deleted`;
   console.log(msg);
   logger.info(msg);
 }
@@ -167,7 +168,7 @@ export async function deleteInactiveLocations() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} inactive FCC locations deleted.`;
+  const msg = `${result[0].affectedRows} inactive FCC locations deleted`;
   console.log(msg);
   logger.info(msg);
 }
@@ -177,7 +178,7 @@ export async function setPoBox() {
 
   const rawSql = `
     UPDATE ham_address
-    SET geocode_status = :pobox_status
+    SET geocode_status = ${GEOCODE_STATUS_PO_BOX}
     WHERE address__address_line1 LIKE 'PO Box%'
     AND (geocode_provider IS NULL OR geocode_provider != 'mn')
   `;
@@ -185,7 +186,7 @@ export async function setPoBox() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} addresses set as PO Box.`;
+  const msg = `${result[0].affectedRows} addresses set as PO Box`;
   console.log(msg);
   logger.info(msg);
 }
