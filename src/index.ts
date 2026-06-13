@@ -16,6 +16,7 @@ import {
   updateHash,
   updateLicenses,
 } from "./lib/imports/sql-updates.js";
+import { writeLog } from "./lib/utils.js";
 
 const program = new Command();
 
@@ -108,5 +109,12 @@ program
   .action(async () => {
     await setPoBox();
   });
+
+  program
+  .command("write-log")
+  .description("Write log")
+  .argument("<string>", "message")
+  .argument("[string]", "level", "info")
+  .action(writeLog);
 
 program.parse();
