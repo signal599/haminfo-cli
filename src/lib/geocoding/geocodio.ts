@@ -2,7 +2,7 @@ import Geocodio from "geocodio-library-node";
 
 let client: Geocodio;
 
-export function getClient() {
+function getClient() {
   if (!client) {
     client = new Geocodio(process.env.GEOCODIO_API_KEY);
   }
