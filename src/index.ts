@@ -17,7 +17,7 @@ import {
   updateLicenses,
 } from "./lib/imports/sql-updates.js";
 import { writeLog } from "./lib/utils.js";
-import { geocode as geocodeByGeocodio } from "./lib/imports/geocoding/geocodio.js";
+import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 
 const program = new Command();
 
