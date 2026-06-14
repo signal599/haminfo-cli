@@ -27,6 +27,7 @@
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "geocodio-library-node": "^2.0.0",
     "mysql2": "^3.22.3",
     "winston": "^3.19.0"
   }

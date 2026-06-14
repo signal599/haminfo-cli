@@ -17,6 +17,7 @@ import {
   updateLicenses,
 } from "./lib/imports/sql-updates.js";
 import { writeLog } from "./lib/utils.js";
+import { geocode as geocodeByGeocodio } from "./lib/imports/geocoding/geocodio.js";
 
 const program = new Command();
 
@@ -116,5 +117,13 @@ program
   .argument("<string>", "message")
   .argument("[string]", "level", "info")
   .action(writeLog);
+
+program
+  .command("geocode-by-geocodio")
+  .description("Geocode by geocodio")
+  .argument("<string>", "address")
+  .action(async (address) => {
+    console.log(await geocodeByGeocodio(address));
+  });
 
 program.parse();
