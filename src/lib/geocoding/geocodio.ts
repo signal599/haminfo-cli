@@ -11,6 +11,14 @@ function getClient() {
 }
 
 export async function geocode(address: string) {
-  const client = getClient();
-  return await client.geocode(address);
+  let data = null;
+
+  try {
+    const client = getClient();
+    data = await client.geocode(address);
+  }
+  catch {
+  }
+
+  return data;
 }

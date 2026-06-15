@@ -18,6 +18,7 @@ import {
 } from "./lib/imports/sql-updates.js";
 import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
+import { geocode as geocodeByGoogle } from "./lib/geocoding/google.js";
 
 const program = new Command();
 
@@ -120,10 +121,18 @@ program
 
 program
   .command("geocode-by-geocodio")
-  .description("Geocode by geocodio")
+  .description("Geocode by Geocodio")
   .argument("<string>", "address")
   .action(async (address) => {
     console.log(await geocodeByGeocodio(address));
+  });
+
+program
+  .command("geocode-by-google")
+  .description("Geocode by Google")
+  .argument("<string>", "address")
+  .action(async (address) => {
+    console.log(await geocodeByGoogle(address));
   });
 
 program.parse();
