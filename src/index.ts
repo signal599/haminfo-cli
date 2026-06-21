@@ -19,6 +19,7 @@ import {
 import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle } from "./lib/geocoding/google.js";
+import { revalidateCache } from "./lib/revalidate-cache.js";
 
 const program = new Command();
 
@@ -133,6 +134,13 @@ program
   .argument("<string>", "address")
   .action(async (address) => {
     console.log(await geocodeByGoogle(address));
+  });
+
+program
+  .command("revalidate-cache")
+  .description("Revalidate cache")
+  .action(async () => {
+    revalidateCache();
   });
 
 program.parse();

@@ -21,3 +21,5 @@ dist/index.js set-po-box
 dist/index.js truncate-table hd
 dist/index.js truncate-table en
 dist/index.js truncate-table am
+
+dist/index.js revalidate-cache
