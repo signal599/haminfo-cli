@@ -5,6 +5,12 @@ APP_ROOT=$SCRIPT_DIR/..
 
 cd $APP_ROOT
 
+if [ -d /srv/haminfo-cli ]; then
+  export NVM_DIR="/home/ross/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  nvm use default >/dev/null 2>&1
+fi
+
 dist/index.js write-log 'FCC download and update started'
 
 dist/index.js import-hd
