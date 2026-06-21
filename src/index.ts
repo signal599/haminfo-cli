@@ -140,7 +140,8 @@ program
   .command("revalidate-cache")
   .description("Revalidate cache")
   .action(async () => {
-    revalidateCache();
+    await revalidateCache();
+    console.log("Cache revalidated");
   });
 
 program.parse();

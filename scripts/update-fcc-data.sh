@@ -5,6 +5,8 @@ APP_ROOT=$SCRIPT_DIR/..
 
 cd $APP_ROOT
 
+dist/index.js write-log 'FCC download and update started'
+
 dist/index.js import-hd
 dist/index.js import-en
 dist/index.js import-am
