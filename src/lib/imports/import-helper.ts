@@ -147,5 +147,5 @@ function buildValues(
 }
 
 export function addRowHash(row: string, dataRow: string[], values: valuesType) {
-  values.rowHash = createHash("sha1").update(`${row}\r\n`).digest("hex");
+  values.rowHash = createHash("sha1").update(row).digest("hex");
 }
