@@ -1,4 +1,5 @@
 import Geocodio from "geocodio-library-node";
+import { addressType } from "../types.js";
 
 let client: Geocodio;
 
@@ -21,4 +22,8 @@ export async function geocode(address: string) {
   }
 
   return data;
+}
+
+export async function geocodeBatch(addresses: addressType[]) {
+
 }
