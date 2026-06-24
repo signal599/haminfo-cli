@@ -20,6 +20,7 @@ import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
+import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
 
 const program = new Command();
 
@@ -119,6 +120,13 @@ program
   .argument("<string>", "message")
   .argument("[string]", "level", "info")
   .action(writeLog);
+
+program
+  .command("geocode-batch")
+  .description("Geocode batch")
+  .action(async () => {
+    await geocodeBatch();
+  });
 
 program
   .command("geocode-by-geocodio")

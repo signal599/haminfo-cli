@@ -25,5 +25,5 @@ export async function geocode(address: string) {
 }
 
 export async function geocodeBatch(addresses: addressType[]) {
-
+  console.log(addresses);
 }

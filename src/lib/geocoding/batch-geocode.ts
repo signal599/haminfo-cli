@@ -8,7 +8,7 @@ import { stripPoBox } from "../utils.js";
 import { addressType } from "../types.js";
 import * as geocodio from "./geocodio.js";
 
-async function geocodeBatch() {
+export async function geocodeBatch() {
   if (!process.env.BATCH_GEOCODING_ENABLED) {
     return;
   }
