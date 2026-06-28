@@ -18,7 +18,7 @@ import {
 } from "./lib/imports/sql-updates.js";
 import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
-import { geocode as geocodeByGoogle } from "./lib/geocoding/google.js";
+import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
 import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
 
@@ -138,11 +138,11 @@ program
   });
 
 program
-  .command("geocode-by-google")
-  .description("Geocode by Google")
+  .command("google-formatted-address")
+  .description("Google formatted address")
   .argument("<string>", "address")
   .action(async (address) => {
-    console.log(await geocodeByGoogle(address));
+    console.log(await getFormattedAddress(address));
   });
 
 program

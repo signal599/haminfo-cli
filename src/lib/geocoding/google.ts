@@ -1,7 +1,8 @@
-import { addressType, geocodeAddress } from "../types.js";
+import logger from "../logger.js";
+import { geocodeAddress, requestResponse } from "../types.js";
 import { getSingleLineAddress } from "../utils.js";
 
-export async function geocode(address: string) {
+export async function geocode(address: string): Promise<requestResponse> {
   const url = 'https://maps.googleapis.com/maps/api/geocode/json';
 
   const query = new URLSearchParams({
@@ -9,28 +10,32 @@ export async function geocode(address: string) {
     key: process.env.GOOGLE_GEOCODE_API_KEY!
   });
 
-  let data = null;
+  const result = {
+    code: -1,
+    data: null,
+  } as requestResponse;
 
   try {
     const response = await fetch(`${url}?${query}`);
-    data = await response.json();
+    result.data = await response.json();
+    result.code = response.status;
   }
   catch {
   }
 
-  return data;
+  if (result.code !== 200) {
+    logger.error(`Geocodio response ${result.code}`);
+  }
+
+  return result;
 }
 
-function getFormattedAddressFromResponse(response: unknown): string | null {
-  if (
-    response === undefined ||
-    response === null ||
-    typeof response !== "object"
-  ) {
+function getFormattedAddressFromResponse(response: requestResponse): string | null {
+  if (response.code !== 200) {
     return null;
   }
 
-  const r = response as Record<string, unknown>;
+  const r = response.data as Record<string, unknown>;
 
   if (
     !Array.isArray(r.results) ||
@@ -52,24 +57,30 @@ function getFormattedAddressFromResponse(response: unknown): string | null {
   return (firstResult as Record<string, unknown>).formatted_address as string;
 }
 
-async function getFormattedAddress(address: string) {
+export async function getFormattedAddress(address: string): Promise<{ code: number, address: string }> {
   const response = await geocode(address);
-  return getFormattedAddressFromResponse(response);
+
+  return {
+    code: response.code,
+    address: getFormattedAddressFromResponse(response) || ""
+  }
 }
 
 export async function batchGetFormattedAddresses(addresses: geocodeAddress[]): Promise<geocodeAddress[]> {
   if (!addresses.length) {
     return [];
   }
-  
+
   const formattedAddresses: geocodeAddress[] = [];
 
   for (const address of addresses) {
-    const formatted = await getFormattedAddress(address.address);
-    formattedAddresses.push({
-      id: address.id,
-      address: formatted || "",
-    });
+    const result = await getFormattedAddress(address.address);
+    if (result.code === 200) {
+      formattedAddresses.push({
+        id: address.id,
+        address: result.address,
+      });
+    }
   }
 
   return formattedAddresses;

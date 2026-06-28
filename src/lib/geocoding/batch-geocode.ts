@@ -32,16 +32,30 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
 
   const addressesMap = await getAdddresses(db);
   batchResult.total = addressesMap.size;
-  logger.info(`${batchResult.total} to geocode`);
+  logger.info(`${batchResult.total} addresses to geocode`);
 
   if (!batchResult.total) {
     return batchResult;
   }
 
   let someResults = await geocodeSomeAddresses([...addressesMap.values()], addressesMap);
+
+  if (someResults.code !== 200) {
+    // Request failed. Probably exceeded daily limit so no point in retrying.
+    return batchResult;
+  }
+
+  logger.info(`${someResults.success.length} out of ${batchResult.total} addresses successfully geocoded`);
+
+  // Collect the successful responses.
   let successResults: geocodeResult[] = someResults.success;
 
   if (someResults.failed.length) {
+    logger.info(`Trying Google for ${someResults.failed.length} addresses`);
+
+    // Some failed so see if we can get a better formatted address from Google.
+    // We can't store location results from Google because of terms and conditions but
+    // sometimes it can provide a cleaner address.
     const formattedAddresses = await google.batchGetFormattedAddresses(someResults.failed);
     const retryAddresses: geocodeAddress[] = [];
 
@@ -50,6 +64,7 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
       const original = addressesMap.get(address.id)!.address;
 
       if (formatted.toLowerCase() !== original.toLowerCase()) {
+        // We have a different address to we'll retry.
         retryAddresses.push({
           id: address.id,
           address: formatted,
@@ -57,12 +72,25 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
       }
     }
 
+    logger.info(`Found ${retryAddresses.length} different addresses. Retrying Geocodio`);
+
+    // Retry with better addresses.
     someResults = await geocodeSomeAddresses(retryAddresses, addressesMap);
-    successResults = [...successResults, ...someResults.success];
+
+    if (someResults.success.length) {
+      logger.info(`${someResults.success.length} more successfully geocoded`);
+      // Add to success results.
+      successResults = [...successResults, ...someResults.success];
+      logger.info(`${successResults.length} out of ${batchResult.total} addresses successfully geocoded`);
+    }
+    else {
+      logger.info("No more successes");
+    }
   }
 
-  console.log(successResults);
   batchResult.success = successResults.length;
+
+  console.log(batchResult);
   return batchResult;
 }
 
@@ -82,7 +110,6 @@ async function geocodeSomeAddresses(addresses: geocodeAddress[], addressesMap: M
   } as resultType;
 
   if (response.code !== 200) {
-    logger.error(`Geocodio response ${response.code}`)
     return results;
   }
 

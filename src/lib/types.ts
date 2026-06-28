@@ -7,6 +7,11 @@ export type ImportColumnInfo = {
 
 export type ImportSchema = Record<string, ImportColumnInfo>;
 
+export type requestResponse = { 
+  code: number;
+  data: any;
+}
+
 export type geocodeAddress = {
   id: number;
   address: string;
