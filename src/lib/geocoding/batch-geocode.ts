@@ -86,17 +86,19 @@ async function doBatch(): Promise<batchResult> {
 
     logger.info(`Found ${retryAddresses.length} different addresses. Retrying Geocodio`);
 
-    // Retry with better addresses.
-    someResults = await geocodeSomeAddresses(retryAddresses, addressesMap);
+    if (retryAddresses.length) {
+      // Retry with better addresses.
+      someResults = await geocodeSomeAddresses(retryAddresses, addressesMap);
 
-    if (someResults.success.length) {
-      logger.info(`${someResults.success.length} more successfully geocoded`);
-      // Add to success results.
-      successResults = [...successResults, ...someResults.success];
-      logger.info(`${successResults.length} out of ${batchResult.total} addresses successfully geocoded`);
-    }
-    else {
-      logger.info("No more successes");
+      if (someResults.success.length) {
+        logger.info(`${someResults.success.length} more successfully geocoded`);
+        // Add to success results.
+        successResults = [...successResults, ...someResults.success];
+        logger.info(`${successResults.length} out of ${batchResult.total} addresses successfully geocoded`);
+      }
+      else {
+        logger.info("No more successes");
+      }
     }
   }
 
@@ -152,7 +154,7 @@ async function updateOneAddress(id: number, status: number, lat: number | null, 
     geocodeStatus: status,
     changed: now,
   })
-  .where(eq(hamAddress.id, id));
+    .where(eq(hamAddress.id, id));
 }
 
 export async function getLocationId(lat: number, lng: number): Promise<number | null> {

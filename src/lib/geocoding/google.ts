@@ -1,6 +1,5 @@
 import logger from "../logger.js";
 import { geocodeAddress, requestResponse } from "../types.js";
-import { getSingleLineAddress } from "../utils.js";
 
 export async function geocode(address: string): Promise<requestResponse> {
   const url = 'https://maps.googleapis.com/maps/api/geocode/json';
@@ -79,6 +78,7 @@ export async function batchGetFormattedAddresses(addresses: geocodeAddress[]): P
       formattedAddresses.push({
         id: address.id,
         address: result.address,
+        originalStatus: undefined,
       });
     }
   }
