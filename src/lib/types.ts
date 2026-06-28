@@ -15,6 +15,7 @@ export type requestResponse = {
 export type geocodeAddress = {
   id: number;
   address: string;
+  originalStatus: number | undefined;
 }
 
 export type geocodeResult = {

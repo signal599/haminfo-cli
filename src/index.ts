@@ -20,7 +20,8 @@ import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
-import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
+import { geocodeBatch, getLocationId } from "./lib/geocoding/batch-geocode.js";
+import { closeDb } from "./lib/db-helper.js";
 
 const program = new Command();
 
@@ -125,7 +126,7 @@ program
   .command("geocode-batch")
   .description("Geocode batch")
   .action(async () => {
-    await geocodeBatch();
+    console.log(await geocodeBatch());
   });
 
 program
@@ -151,6 +152,13 @@ program
   .action(async () => {
     await revalidateCache();
     console.log("Cache revalidated");
+  });
+
+program
+  .command("test")
+  .action(async () => {
+    console.log(await getLocationId(1, 1));
+    await closeDb();
   });
 
 program.parse();

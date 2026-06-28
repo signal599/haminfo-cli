@@ -1,22 +1,32 @@
-import { eq } from "drizzle-orm";
-import { hamAddress } from "../../db/schema.js";
+import { and, eq, sql } from "drizzle-orm";
+import { hamAddress, hamLocation } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
-import { GEOCODE_STATUS_PENDING } from "../constants.js";
-import { MySql2Database } from "drizzle-orm/mysql2";
+import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
 import logger from "../logger.js";
 import { stripPoBox } from "../utils.js";
 import { geocodeAddress, geocodeResult } from "../types.js";
 import * as geocodio from "./geocodio.js";
 import * as google from "./google.js";
+import { randomUUID } from "crypto";
+import { revalidateCache } from "../revalidate-cache.js";
+import { deleteInactiveLocations } from "../imports/sql-updates.js";
 
 export async function geocodeBatch() {
   if (!process.env.BATCH_GEOCODING_ENABLED) {
     return;
   }
 
-  const db = await getDb();
-  const result = await doBatch(db);
-  await closeDb();
+  let result
+
+  try {
+    result = await doBatch();
+  }
+  finally {
+    await closeDb();
+  }
+
+  revalidateCache();
+  return result;
 }
 
 type batchResult = {
@@ -24,13 +34,13 @@ type batchResult = {
   total: number;
 }
 
-async function doBatch(db: MySql2Database): Promise<batchResult> {
+async function doBatch(): Promise<batchResult> {
   const batchResult = {
     success: 0,
     total: 0,
   };
 
-  const addressesMap = await getAdddresses(db);
+  const addressesMap = await getAdddresses();
   batchResult.total = addressesMap.size;
   logger.info(`${batchResult.total} addresses to geocode`);
 
@@ -42,6 +52,7 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
 
   if (someResults.code !== 200) {
     // Request failed. Probably exceeded daily limit so no point in retrying.
+    // Do not update database.
     return batchResult;
   }
 
@@ -61,13 +72,14 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
 
     for (const address of formattedAddresses) {
       const formatted = address.address;
-      const original = addressesMap.get(address.id)!.address;
+      const original = getGeocodeAddress(address.id, addressesMap).address;
 
       if (formatted.toLowerCase() !== original.toLowerCase()) {
         // We have a different address to we'll retry.
         retryAddresses.push({
           id: address.id,
           address: formatted,
+          originalStatus: undefined,
         })
       }
     }
@@ -88,10 +100,86 @@ async function doBatch(db: MySql2Database): Promise<batchResult> {
     }
   }
 
+  await updateDatabase(addressesMap, successResults);
+  await deleteInactiveLocations();
   batchResult.success = successResults.length;
-
-  console.log(batchResult);
   return batchResult;
+}
+
+async function updateDatabase(addressMap: Map<number, geocodeAddress>, successResults: geocodeResult[]) {
+  const successMap = new Map<number, geocodeResult>();
+  let successCount = 0;
+  let notFound = 0;
+
+  for (const address of successResults) {
+    successMap.set(address.id, address);
+  }
+
+  for (const [id, address] of addressMap) {
+    const successResult = successMap.get(id);
+
+    if (successResult) {
+      await updateOneAddress(id, GEOCODE_STATUS_SUCCESS, successResult.lat!, successResult.lng!)
+      successCount++;
+      continue;
+    }
+
+    if (address.originalStatus === GEOCODE_STATUS_SUCCESS) {
+      // Don't remove previous successful geocode. This might happen if we are re-processing
+      // old records hoping to improve accuracy.
+      continue;
+    }
+
+    await updateOneAddress(id, GEOCODE_STATUS_NOT_FOUND, null, null)
+    notFound++;
+  }
+
+  logger.info(`${successCount} success | ${notFound} not found written to database`);
+}
+
+async function updateOneAddress(id: number, status: number, lat: number | null, lng: number | null) {
+  const db = await getDb();
+  let locationId = null;
+
+  if ((status === GEOCODE_STATUS_SUCCESS) && lat && lng) {
+    locationId = await getLocationId(lat, lng);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  await db.update(hamAddress).set({
+    locationId: locationId,
+    geocodeStatus: status,
+    changed: now,
+  })
+  .where(eq(hamAddress.id, id));
+}
+
+export async function getLocationId(lat: number, lng: number): Promise<number | null> {
+  const db = await getDb();
+
+  const rows = await db.select({ id: hamLocation.id })
+    .from(hamLocation)
+    .where(sql`latitude = ${lat} AND longitude = ${lng}`);
+
+  if (rows.length) {
+    return rows[0].id;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  const result = await db.insert(hamLocation).values({
+    uuid: randomUUID(),
+    langcode: "en",
+    userId: 1,
+    latitude: lat.toString(),
+    longitude: lng.toString(),
+    status: 1,
+    created: now,
+    changed: now,
+  });
+
+  return result[0].insertId;
 }
 
 type resultType = {
@@ -120,7 +208,8 @@ async function geocodeSomeAddresses(addresses: geocodeAddress[], addressesMap: M
     else {
       results.failed.push({
         id: result.id,
-        address: addressesMap.get(result.id)!.address,
+        address: getGeocodeAddress(result.id, addressesMap).address,
+        originalStatus: undefined
       });
     }
   }
@@ -128,7 +217,13 @@ async function geocodeSomeAddresses(addresses: geocodeAddress[], addressesMap: M
   return results;
 }
 
-async function getAdddresses(db: MySql2Database): Promise<Map<number, geocodeAddress>> {
+function getGeocodeAddress(id: number, addressMap: Map<number, geocodeAddress>): geocodeAddress {
+  return addressMap.get(id)!;
+}
+
+async function getAdddresses(): Promise<Map<number, geocodeAddress>> {
+  const db = await getDb();
+
   const rows = await db
     .select({
       id: hamAddress.id,
@@ -156,6 +251,7 @@ async function getAdddresses(db: MySql2Database): Promise<Map<number, geocodeAdd
     result.set(address.id, {
       id: address.id,
       address: parts.join(", "),
+      originalStatus: address.geocodeStatus || GEOCODE_STATUS_PENDING,
     });
   });
 
