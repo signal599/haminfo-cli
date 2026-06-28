@@ -133,7 +133,8 @@ program
   .description("Geocode by Geocodio")
   .argument("<string>", "address")
   .action(async (address) => {
-    console.log(await geocodeByGeocodio(address));
+    const response = await geocodeByGeocodio([address]);
+    console.log(response.code, response.data);
   });
 
 program

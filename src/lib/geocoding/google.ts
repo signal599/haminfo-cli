@@ -1,3 +1,6 @@
+import { addressType, geocodeAddress } from "../types.js";
+import { getSingleLineAddress } from "../utils.js";
+
 export async function geocode(address: string) {
   const url = 'https://maps.googleapis.com/maps/api/geocode/json';
 
@@ -49,7 +52,25 @@ function getFormattedAddressFromResponse(response: unknown): string | null {
   return (firstResult as Record<string, unknown>).formatted_address as string;
 }
 
-export async function getFormattedAddress(address: string) {
+async function getFormattedAddress(address: string) {
   const response = await geocode(address);
   return getFormattedAddressFromResponse(response);
+}
+
+export async function batchGetFormattedAddresses(addresses: geocodeAddress[]): Promise<geocodeAddress[]> {
+  if (!addresses.length) {
+    return [];
+  }
+  
+  const formattedAddresses: geocodeAddress[] = [];
+
+  for (const address of addresses) {
+    const formatted = await getFormattedAddress(address.address);
+    formattedAddresses.push({
+      id: address.id,
+      address: formatted || "",
+    });
+  }
+
+  return formattedAddresses;
 }

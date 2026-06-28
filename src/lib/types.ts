@@ -7,12 +7,13 @@ export type ImportColumnInfo = {
 
 export type ImportSchema = Record<string, ImportColumnInfo>;
 
-export type addressType = {
+export type geocodeAddress = {
   id: number;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  origGeocodeStatus: number;
-  newGeocodeStatus: number;
+  address: string;
+}
+
+export type geocodeResult = {
+  id: number;
+  lat: number | null;
+  lng: number | null;
 }
