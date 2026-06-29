@@ -25,7 +25,10 @@ export async function geocodeBatch() {
     await closeDb();
   }
 
-  revalidateCache();
+  if (result && result.total) {
+    revalidateCache();
+  }
+
   return result;
 }
 
