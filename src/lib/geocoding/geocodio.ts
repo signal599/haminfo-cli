@@ -58,6 +58,10 @@ export async function geocodeBatch(addresses: geocodeAddress[]): Promise<{ code:
   }
 
   response.data.results.forEach((item: any, index: number) => {
+    if (!Array.isArray(item.response.results) || item.response.results.length === 0) {
+      return;
+    }
+
     // Geocodio says first result is always the most accurate.
     const firstResponseResult = item.response.results[0];
 
