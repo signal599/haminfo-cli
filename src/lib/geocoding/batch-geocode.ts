@@ -155,7 +155,7 @@ async function updateOneAddress(id: number, status: number, lat: number | null, 
   await db.update(hamAddress).set({
     locationId: locationId,
     geocodeStatus: status,
-    changed: now,
+    geocodeTime: now,
   })
     .where(eq(hamAddress.id, id));
 }
