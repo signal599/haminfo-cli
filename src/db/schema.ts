@@ -1551,3 +1551,20 @@ export const watchdog = mysqlTable("watchdog", {
 	index("uid").on(table.uid),
 	primaryKey({ columns: [table.wid], name: "watchdog_wid"}),
 ]);
+
+export const exportQueue = mysqlTable("export_queue", {
+	id: int({ unsigned: true }).autoincrement().notNull(),
+	email: varchar({ length: 254 }).notNull(),
+	state: varchar({ length: 2 }),
+	zip: varchar({ length: 5 }),
+	delimiter: varchar({ length: 1 }).notNull(),
+	enclosure: varchar({ length: 1 }).notNull(),
+	status: int().notNull().default(0),
+	fileName: varchar("file_name", { length: 255 }),
+	createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+	processedAt: datetime("processed_at"),
+}, (table) => [
+	primaryKey({ columns: [table.id], name: "export_queue_id" }),
+	index("export_queue_status").on(table.status),
+	index("export_queue_email").on(table.email),
+]);
