@@ -22,6 +22,7 @@ import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding
 import { revalidateCache } from "./lib/revalidate-cache.js";
 import { geocodeBatch, getLocationId } from "./lib/geocoding/batch-geocode.js";
 import { closeDb } from "./lib/db-helper.js";
+import { processExportQueue } from "./lib/exports/export-queue.js";
 
 const program = new Command();
 
@@ -152,6 +153,13 @@ program
   .action(async () => {
     await revalidateCache();
     console.log("Cache revalidated");
+  });
+
+program
+  .command("process-exports")
+  .description("Process pending export queue jobs")
+  .action(async () => {
+    await processExportQueue();
   });
 
 program

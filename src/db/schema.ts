@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, index, primaryKey, int, varchar, unique, tinyint, longtext, bigint, decimal, smallint, char, text, float, double } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, index, primaryKey, int, varchar, unique, tinyint, longtext, bigint, decimal, smallint, char, text, float, double, datetime } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 export const batch = mysqlTable("batch", {

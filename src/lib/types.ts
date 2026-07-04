@@ -23,3 +23,12 @@ export type geocodeResult = {
   lat: number | null;
   lng: number | null;
 }
+
+export type exportJob = {
+  id: number;
+  email: string;
+  state: string | null;
+  zip: string | null;
+  delimiter: string;
+  enclosure: string;
+}

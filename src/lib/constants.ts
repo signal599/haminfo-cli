@@ -2,3 +2,10 @@ export const GEOCODE_STATUS_PENDING = 0;
 export const GEOCODE_STATUS_SUCCESS = 1;
 export const GEOCODE_STATUS_NOT_FOUND = 2;
 export const GEOCODE_STATUS_PO_BOX = 3;
+
+export const EXPORT_STATUS_PENDING = 0;
+export const EXPORT_STATUS_RUNNING = 1;
+export const EXPORT_STATUS_COMPLETE = 2;
+export const EXPORT_STATUS_FAILED = 3;
+
+export const EXPORT_STALE_TIMEOUT_MINUTES = 30;
