@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 import { mkdir } from "fs/promises";
 import { and, eq, sql } from "drizzle-orm";
 import { exportQueue } from "../../db/schema.js";
@@ -101,9 +101,16 @@ async function claimNextJob(): Promise<exportJob | null> {
   };
 }
 
+function buildFileName(job: exportJob): string {
+  const filter = job.zip || (job.state && job.state !== "**" ? job.state : "ALL");
+  const random = randomBytes(4).toString("base64url").slice(0, 5);
+
+  return `${filter}-${job.id}-${random}.csv`;
+}
+
 async function runExport(job: exportJob): Promise<void> {
   const db = await getDb();
-  const fileName = `${randomUUID()}.csv`;
+  const fileName = buildFileName(job);
   const filePath = `${process.env.EXPORT_DIR}/${fileName}`;
 
   try {
