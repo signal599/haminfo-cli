@@ -160,7 +160,7 @@ async function updateOneAddress(id: number, status: number, lat: number | null, 
     .where(eq(hamAddress.id, id));
 }
 
-export async function getLocationId(lat: number, lng: number): Promise<number | null> {
+async function getLocationId(lat: number, lng: number): Promise<number | null> {
   const db = await getDb();
 
   const rows = await db.select({ id: hamLocation.id })

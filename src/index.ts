@@ -20,8 +20,7 @@ import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
-import { geocodeBatch, getLocationId } from "./lib/geocoding/batch-geocode.js";
-import { closeDb } from "./lib/db-helper.js";
+import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
 import { processExportQueue } from "./lib/exports/export-queue.js";
 
 const program = new Command();
@@ -160,13 +159,6 @@ program
   .description("Process pending export queue jobs")
   .action(async () => {
     await processExportQueue();
-  });
-
-program
-  .command("test")
-  .action(async () => {
-    console.log(await getLocationId(1, 1));
-    await closeDb();
   });
 
 program.parse();
