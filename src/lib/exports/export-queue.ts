@@ -103,7 +103,7 @@ async function claimNextJob(): Promise<exportJob | null> {
 
 function buildFileName(job: exportJob): string {
   const filter = job.zip || (job.state && job.state !== "**" ? job.state : "ALL");
-  const random = randomBytes(4).toString("base64url").slice(0, 5);
+  const random = randomBytes(4).toString("base64url").toLowerCase().slice(0, 5);
 
   return `${filter}-${job.id}-${random}.csv`;
 }
