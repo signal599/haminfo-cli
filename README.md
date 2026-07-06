@@ -1,5 +1,3 @@
-# haminfo-cli
+# Amateur Radio License map #
 
-The CLI commands for file imports etc for the ham map project.
-
-This is a WIP conversion from Drupal to Node.js and TypeScript.
+This is the back end of the site at [https://haminfo.tetranz.com/map](https://haminfo.tetranz.com/map).
