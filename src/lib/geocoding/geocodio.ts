@@ -3,7 +3,9 @@ import { geocodeAddress, geocodeResult, requestResponse } from "../types.js";
 import logger from "../logger.js";
 
 const url = "https://api.geocod.io/v2/geocode";
-const ACCEPTED_ACCURACY_TYPES = ["rooftop", "point", "range_interpolation", "nearest_rooftop_match", "intersectio", "street_center"];
+// Geocodio's precise forward-geocoding accuracy types. The coarse ones
+// (place, county, state) are deliberately excluded.
+const ACCEPTED_ACCURACY_TYPES = ["rooftop", "point", "range_interpolation", "nearest_rooftop_match", "intersection", "street_center"];
 const ACCEPTED_ACCURACY = 0.8;
 
 export async function geocode(addresses: string[]): Promise<requestResponse> {

@@ -3,7 +3,7 @@ import { hamAddress, hamLocation } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
 import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
 import logger from "../logger.js";
-import { stripPoBox } from "../utils.js";
+import { isEnvEnabled, stripPoBox } from "../utils.js";
 import { geocodeAddress, geocodeResult } from "../types.js";
 import * as geocodio from "./geocodio.js";
 import * as google from "./google.js";
@@ -12,7 +12,10 @@ import { revalidateCache } from "../revalidate-cache.js";
 import { deleteInactiveLocations } from "../imports/sql-updates.js";
 
 export async function geocodeBatch() {
-  if (!process.env.BATCH_GEOCODING_ENABLED) {
+  if (!isEnvEnabled("BATCH_GEOCODING_ENABLED")) {
+    // Logged rather than returning silently: this runs hourly from cron, so a
+    // misconfigured value would otherwise stop geocoding with no trace.
+    logger.warn("Batch geocoding skipped: BATCH_GEOCODING_ENABLED is not set to a value such as 'true' or '1'");
     return;
   }
 

@@ -4,6 +4,13 @@ export function isNumeric(value: string): boolean {
   return !isNaN(Number(value)) && value.trim() !== '';
 }
 
+// Environment variables are always strings, so a plain truthiness check treats
+// "false" and "0" as enabled. Only explicit affirmative values count.
+export function isEnvEnabled(name: string): boolean {
+  const value = (process.env[name] ?? "").trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
 // Write a log message for testing New Relic.
 export function writeLog(message: string, level: string) {
   logger.log(level, message);
