@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { hamAddress, hamLocation } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
 import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
@@ -34,6 +34,9 @@ export async function geocodeBatch() {
 
   return result;
 }
+
+// Matches the scale of ham_location.latitude/longitude, DECIMAL(10,7).
+const LOCATION_DECIMALS = 7;
 
 type batchResult = {
   success: number;
@@ -166,9 +169,19 @@ async function updateOneAddress(id: number, status: number, lat: number | null, 
 async function getLocationId(lat: number, lng: number): Promise<number | null> {
   const db = await getDb();
 
+  // Round to the column's scale before both the lookup and the insert. MySQL
+  // rounds a longer value on insert, so searching with the unrounded one misses
+  // the row it would round into, and the insert that follows then trips the
+  // unique key on (latitude, longitude) and aborts the batch.
+  const latitude = lat.toFixed(LOCATION_DECIMALS);
+  const longitude = lng.toFixed(LOCATION_DECIMALS);
+
   const rows = await db.select({ id: hamLocation.id })
     .from(hamLocation)
-    .where(sql`latitude = ${lat} AND longitude = ${lng}`);
+    .where(and(
+      eq(hamLocation.latitude, latitude),
+      eq(hamLocation.longitude, longitude),
+    ));
 
   if (rows.length) {
     return rows[0].id;
@@ -180,8 +193,8 @@ async function getLocationId(lat: number, lng: number): Promise<number | null> {
     uuid: randomUUID(),
     langcode: "en",
     userId: 1,
-    latitude: lat.toString(),
-    longitude: lng.toString(),
+    latitude,
+    longitude,
     status: 1,
     created: now,
     changed: now,
