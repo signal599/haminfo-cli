@@ -34,7 +34,7 @@ export async function importEn() {
     "statusDate",
   ];
 
-  importFile(
+  await importFile(
     fccLicenseEn,
     columns,
     `${projectRoot}/downloads/EN.dat`,

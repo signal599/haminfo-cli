@@ -132,12 +132,14 @@ function buildValues(
 
   columns.forEach((column) => {
     const columnInfo = schema[column];
-    let value: valueType = dataRow[columnInfo.index];
+    // Short rows are common in the FCC files: trailing empty fields are often
+    // omitted entirely, so treat a missing field as an empty one.
+    let value: valueType = dataRow[columnInfo.index] ?? "";
 
     if (columnInfo.dataType === "string") {
-      value = value.substring(0, columnInfo.length);
+      value = (value as string).substring(0, columnInfo.length);
     } else if (columnInfo.dataType === "number") {
-      value = isNumeric(value) ? parseInt(value) : null;
+      value = isNumeric(value as string) ? parseInt(value as string) : null;
     }
 
     values[column] = value;

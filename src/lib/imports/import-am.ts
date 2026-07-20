@@ -24,7 +24,7 @@ export async function importAm() {
     "trusteeName",
   ];
 
-  importFile(
+  await importFile(
     fccLicenseAm,
     columns,
     `${projectRoot}/downloads/AM.dat`,

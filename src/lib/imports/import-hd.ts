@@ -56,7 +56,7 @@ export async function importHd() {
     "licenseeNameChange",
   ];
 
-  importFile(
+  await importFile(
     fccLicenseHd,
     columns,
     `${projectRoot}/downloads/HD.dat`,
