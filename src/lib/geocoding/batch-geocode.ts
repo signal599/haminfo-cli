@@ -7,7 +7,6 @@ import { isEnvEnabled, stripPoBox } from "../utils.js";
 import { geocodeAddress, geocodeResult } from "../types.js";
 import * as geocodio from "./geocodio.js";
 import * as google from "./google.js";
-import { randomUUID } from "crypto";
 import { revalidateCache } from "../revalidate-cache.js";
 import { deleteInactiveLocations } from "../imports/sql-updates.js";
 
@@ -190,12 +189,8 @@ async function getLocationId(lat: number, lng: number): Promise<number | null> {
   const now = Math.floor(Date.now() / 1000);
 
   const result = await db.insert(hamLocation).values({
-    uuid: randomUUID(),
-    langcode: "en",
-    userId: 1,
     latitude,
     longitude,
-    status: 1,
     created: now,
     changed: now,
   });

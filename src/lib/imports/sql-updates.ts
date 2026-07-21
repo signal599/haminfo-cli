@@ -68,13 +68,13 @@ export async function importNewLicenses() {
 
   const rawSql = `
     INSERT INTO ham_station
-    (uuid, langcode, callsign, first_name, middle_name, last_name, suffix,
+    (callsign, first_name, middle_name, last_name, suffix,
     organization, operator_class, previous_callsign, total_hash, address_hash,
-    user_id, status, created, changed)
-    SELECT uuid() AS uuid, 'en' AS langcode, hd.call_sign AS callsign, en.first_name, en.mi AS middle_name, en.last_name, en.suffix,
+    created, changed)
+    SELECT hd.call_sign AS callsign, en.first_name, en.mi AS middle_name, en.last_name, en.suffix,
     CASE WHEN applicant_type_code != 'I' THEN en.entity_name ELSE NULL END AS organization,
     am.operator_class, am.previous_callsign, hd.total_hash, en.address_hash,
-    1 AS user_id, 1 AS status, unix_timestamp() AS created, unix_timestamp() AS changed
+    unix_timestamp() AS created, unix_timestamp() AS changed
     FROM fcc_license_hd hd
     INNER JOIN fcc_license_en en ON en.unique_system_identifier = hd.unique_system_identifier
     INNER JOIN fcc_license_am am ON am.unique_system_identifier = hd.unique_system_identifier
@@ -95,14 +95,14 @@ export async function importNewAddresses() {
 
   const rawSql = `
     INSERT INTO ham_address
-    (uuid, langcode, hash,
+    (hash,
     address__address_line1, address__locality, address__administrative_area,
     address__postal_code, address__country_code, geocode_status,
-    user_id, status, created, changed)
-    SELECT UUID() AS uuid, 'en' AS langcode, address_hash as hash,
+    created, changed)
+    SELECT address_hash as hash,
     en.street_address AS address__address_line1, en.city AS address__locality, en.state AS address__administrative_area,
     en.zip_code AS address__postal_code, 'US' AS address__country_code, 0 AS geocode_status,
-    1 AS user_id, 1 AS status, unix_timestamp() AS created, unix_timestamp() AS changed
+    unix_timestamp() AS created, unix_timestamp() AS changed
     FROM fcc_license_en en
     INNER JOIN fcc_license_hd hd ON hd.unique_system_identifier = en.unique_system_identifier AND hd.license_status = 'A'
     WHERE NOT EXISTS (SELECT id FROM ham_address ha WHERE ha.hash = en.address_hash)
