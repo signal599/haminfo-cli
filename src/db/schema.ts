@@ -217,3 +217,11 @@ export const exportQueue = mysqlTable("export_queue", {
 	index("export_queue_status").on(table.status),
 	index("export_queue_email").on(table.email),
 ]);
+
+export const zipcodes = mysqlTable("zipcodes", {
+	zipcode: varchar({ length: 5 }).notNull(),
+	lat: decimal({ precision: 10, scale: 7 }).notNull(),
+	lng: decimal({ precision: 10, scale: 7 }).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.zipcode], name: "zipcodes_zipcode" }),
+]);
