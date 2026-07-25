@@ -22,6 +22,7 @@ import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
 import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
+import { zipGeocodeBatch } from "./lib/geocoding/zip-geocode.js";
 import { processExportQueue } from "./lib/exports/export-queue.js";
 import { checkImportCounts } from "./lib/imports/check-import.js";
 import logger from "./lib/logger.js";
@@ -163,6 +164,13 @@ program
   .description("Geocode batch")
   .action(run(async () => {
     console.log(await geocodeBatch());
+  }));
+
+program
+  .command("zip-geocode-batch")
+  .description("Batch geocode zip codes in the zipcodes table")
+  .action(run(async () => {
+    await zipGeocodeBatch();
   }));
 
 program
