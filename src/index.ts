@@ -5,7 +5,6 @@ import { Command } from "commander";
 import { importHd } from "./lib/imports/import-hd.js";
 import { importAm } from "./lib/imports/import-am.js";
 import { importEn } from "./lib/imports/import-en.js";
-import { importGazZipcodes } from "./lib/imports/import-gaz-zipcodes.js";
 import {
   deleteInactiveAddresses,
   deleteInactiveLocations,
@@ -69,14 +68,6 @@ program
   .description("Import am file into table")
   .action(run(async () => {
     await importAm();
-  }));
-
-program
-  .command("import-gaz-zipcodes")
-  .description("Import a Census Gazetteer ZCTA file into the zipcodes table")
-  .argument("<string>", "path to the gazetteer file")
-  .action(run(async (filePath) => {
-    await importGazZipcodes(filePath);
   }));
 
 program
