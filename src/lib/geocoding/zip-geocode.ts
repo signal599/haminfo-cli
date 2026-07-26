@@ -28,15 +28,19 @@ export async function zipGeocodeBatch() {
     return;
   }
 
+  let result;
+
   try {
-    await doBatch(batchSize);
+    result = await doBatch(batchSize);
   }
   finally {
     await closeDb();
   }
+
+  return result;
 }
 
-async function doBatch(batchSize: number) {
+async function doBatch(batchSize: number): Promise<string | undefined> {
   const db = await getDb();
 
   // Station geocoding (the ham_address batch) has priority on the shared
@@ -69,8 +73,9 @@ async function doBatch(batchSize: number) {
     .limit(batchSize);
 
   if (!rows.length) {
-    logger.info("Total: 0 | Success: 0 | Not found: 0");
-    return;
+    const summary = "Total: 0 | Success: 0 | Not found: 0";
+    logger.info(summary);
+    return summary;
   }
 
   const zipList = rows.map((row) => row.zipcode);
@@ -107,5 +112,7 @@ async function doBatch(batchSize: number) {
     }
   }
 
-  logger.info(`Total: ${response.results.length} | Success: ${success} | Not found: ${notFound}`);
+  const summary = `Total: ${response.results.length} | Success: ${success} | Not found: ${notFound}`;
+  logger.info(summary);
+  return summary;
 }

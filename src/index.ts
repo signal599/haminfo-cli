@@ -161,7 +161,7 @@ program
   .command("zip-geocode-batch")
   .description("Batch geocode zip codes in the zipcodes table")
   .action(run(async () => {
-    await zipGeocodeBatch();
+    console.log(await zipGeocodeBatch());
   }));
 
 program
