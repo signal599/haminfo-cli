@@ -112,7 +112,7 @@ async function doBatch(batchSize: number): Promise<string | undefined> {
     }
   }
 
-  const summary = `Zip geocode: Total: ${response.results.length} | Success: ${success} | Not found: ${notFound}`;
+  const summary = `Zip ${response.results.length} | ${success} | ${notFound}`;
   logger.info(summary);
   return summary;
 }
