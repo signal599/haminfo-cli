@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, or, isNull } from "drizzle-orm";
 import { hamAddress, hamLocation } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
 import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
@@ -250,7 +250,12 @@ async function getAdddresses(): Promise<Map<number, geocodeAddress>> {
       geocodeStatus: hamAddress.geocodeStatus,
     })
     .from(hamAddress)
-    .where(eq(hamAddress.geocodeStatus, GEOCODE_STATUS_PENDING))
+    .where(
+      and(
+        eq(hamAddress.geocodeStatus, GEOCODE_STATUS_PENDING),
+        or(isNull(hamAddress.geocodeProvider), ne(hamAddress.geocodeProvider, "mn")),
+      ),
+    )
     .orderBy(hamAddress.addressAdministrativeArea, hamAddress.id)
     .limit(parseInt(process.env.GEOCODE_BATCH_SIZE!));
 
