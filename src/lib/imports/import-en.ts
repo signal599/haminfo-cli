@@ -41,8 +41,8 @@ export async function importEn() {
     alterValues,
   );
 
-  function alterValues(row: string, dataRow: string[], values: valuesType) {
-    addRowHash(row, dataRow, values);
+  function alterValues(row: string, values: valuesType) {
+    addRowHash(row, values);
 
     const zipCode = values.zipCode as string;
 

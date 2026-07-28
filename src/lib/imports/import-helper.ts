@@ -11,11 +11,7 @@ import { sql } from "drizzle-orm";
 import logger from "../logger.js";
 import { truncateTable } from "./sql-updates.js";
 
-export type alterValuesType = (
-  row: string,
-  dataRow: string[],
-  values: valuesType,
-) => void;
+export type alterValuesType = (row: string, values: valuesType) => void;
 export type valueType = string | number | null;
 export type valuesType = Record<string, valueType>;
 
@@ -61,7 +57,7 @@ export async function importFile(
     const values = buildValues(importSchema, columns, dataRow);
 
     if (alterValues) {
-      alterValues(row, dataRow, values);
+      alterValues(row, values);
     }
 
     buffer.push(values);
@@ -148,6 +144,6 @@ function buildValues(
   return values;
 }
 
-export function addRowHash(row: string, dataRow: string[], values: valuesType) {
+export function addRowHash(row: string, values: valuesType) {
   values.rowHash = createHash("sha1").update(row).digest("hex");
 }
