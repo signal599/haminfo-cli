@@ -11,10 +11,14 @@ interface RevalidateError {
 
 export async function revalidateCache(): Promise<void> {
   const url = process.env.REVALIDATE_URL!;
+  const token = process.env.REVALIDATE_TOKEN!;
   let response: Response;
 
   try {
-    response = await fetch(url, { method: 'POST' });
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'x-revalidate-token': token },
+    });
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     logger.error('Revalidate request failed', { url, reason });
