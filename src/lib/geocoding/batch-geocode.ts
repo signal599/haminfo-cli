@@ -1,7 +1,8 @@
-import { and, eq, ne, or, isNull } from "drizzle-orm";
+import { and, eq, inArray, SQL } from "drizzle-orm";
+import { MySqlColumn } from "drizzle-orm/mysql-core";
 import { hamAddress, hamLocation } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
-import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
+import { GEOCODE_STATUS_NOT_FOUND, GEOCODE_STATUS_NOT_FOUND_RAW_ADDRESS, GEOCODE_STATUS_PENDING, GEOCODE_STATUS_SUCCESS } from "../constants.js";
 import logger from "../logger.js";
 import { isEnvEnabled, stripPoBox } from "../utils.js";
 import { geocodeAddress, geocodeResult } from "../types.js";
@@ -48,7 +49,7 @@ async function doBatch(): Promise<batchResult> {
     total: 0,
   };
 
-  const addressesMap = await getAdddresses();
+  const addressesMap = await getAddresses();
   batchResult.total = addressesMap.size;
   logger.info(`${batchResult.total} addresses to geocode`);
 
@@ -69,7 +70,12 @@ async function doBatch(): Promise<batchResult> {
   // Collect the successful responses.
   let successResults: geocodeResult[] = someResults.success;
 
-  if (someResults.failed.length) {
+  // Google address cleanup is optional. When enabled, failed Geocodio lookups are sent
+  // to Google for a cleaned-up address and retried at Geocodio. When disabled, failures
+  // are recorded (see updateDatabase) so they can be retried once cleanup is turned back on.
+  const cleanupEnabled = isEnvEnabled("GEOCODE_ADDRESS_CLEANUP_ENABLED");
+
+  if (cleanupEnabled && someResults.failed.length) {
     logger.info(`Trying Google for ${someResults.failed.length} addresses`);
 
     // Some failed so see if we can get a better formatted address from Google.
@@ -110,15 +116,16 @@ async function doBatch(): Promise<batchResult> {
     }
   }
 
-  await updateDatabase(addressesMap, successResults);
+  await updateDatabase(addressesMap, successResults, cleanupEnabled);
   await deleteInactiveLocations();
   batchResult.success = successResults.length;
   return batchResult;
 }
 
-async function updateDatabase(addressMap: Map<number, geocodeAddress>, successResults: geocodeResult[]) {
+async function updateDatabase(addressMap: Map<number, geocodeAddress>, successResults: geocodeResult[], cleanupEnabled: boolean) {
   const successMap = new Map<number, geocodeResult>();
   let successCount = 0;
+  let preservedCount = 0;
   let notFound = 0;
 
   for (const address of successResults) {
@@ -135,33 +142,57 @@ async function updateDatabase(addressMap: Map<number, geocodeAddress>, successRe
     }
 
     if (address.originalStatus === GEOCODE_STATUS_SUCCESS) {
-      // Don't remove previous successful geocode. This might happen if we are re-processing
-      // old records hoping to improve accuracy.
+      // Never downgrade a previous success (e.g. a re-geocode that now fails). Keep the
+      // coordinates and status, but bump geocode_time so the row rolls to the back of the
+      // re-geocode cycle instead of being reselected every run.
+      await touchGeocodeTime(id);
+      preservedCount++;
       continue;
     }
 
-    await updateOneAddress(id, GEOCODE_STATUS_NOT_FOUND, null, null)
+    // A genuine failure. When cleanup was off, a fresh (PENDING) address is only a
+    // raw-address failure worth retrying once cleanup is back on; anything else has been
+    // fully exhausted.
+    const status = (!cleanupEnabled && address.originalStatus === GEOCODE_STATUS_PENDING)
+      ? GEOCODE_STATUS_NOT_FOUND_RAW_ADDRESS
+      : GEOCODE_STATUS_NOT_FOUND;
+
+    await updateOneAddress(id, status, null, null)
     notFound++;
   }
 
-  logger.info(`${successCount} success | ${notFound} not found written to database`);
+  logger.info(`${successCount} success | ${preservedCount} preserved | ${notFound} not found written to database`);
 }
 
 async function updateOneAddress(id: number, status: number, lat: number | null, lng: number | null) {
   const db = await getDb();
   let locationId = null;
+  let provider: string | null = null;
 
   if ((status === GEOCODE_STATUS_SUCCESS) && lat && lng) {
     locationId = await getLocationId(lat, lng);
+    // 'gc' marks a Geocodio result. Informational only, used for the odd manual query.
+    provider = "gc";
   }
 
   const now = Math.floor(Date.now() / 1000);
 
   await db.update(hamAddress).set({
     locationId: locationId,
+    geocodeProvider: provider,
     geocodeStatus: status,
     geocodeTime: now,
   })
+    .where(eq(hamAddress.id, id));
+}
+
+// Bump geocode_time without touching the result, so a preserved row moves to the back of
+// the re-geocode cycle. Used when a re-geocode fails but we keep the previous success.
+async function touchGeocodeTime(id: number) {
+  const db = await getDb();
+  const now = Math.floor(Date.now() / 1000);
+
+  await db.update(hamAddress).set({ geocodeTime: now })
     .where(eq(hamAddress.id, id));
 }
 
@@ -237,10 +268,64 @@ function getGeocodeAddress(id: number, addressMap: Map<number, geocodeAddress>):
   return addressMap.get(id)!;
 }
 
-async function getAdddresses(): Promise<Map<number, geocodeAddress>> {
+type addressRow = {
+  id: number;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  geocodeStatus: number | null;
+}
+
+async function getAddresses(): Promise<Map<number, geocodeAddress>> {
+  const batchSize = parseInt(process.env.GEOCODE_BATCH_SIZE!);
+  const cleanupEnabled = isEnvEnabled("GEOCODE_ADDRESS_CLEANUP_ENABLED");
+
+  // Query 1: forward geocoding. New (PENDING) addresses always; when cleanup is on, also
+  // the raw-address failures parked while it was off. geocode_status ascending keeps
+  // PENDING (0) ahead of NOT_FOUND_RAW_ADDRESS (2), so fresh imports take priority over
+  // the retry backlog; state is secondary so progress can be watched by state.
+  const forwardStatuses = cleanupEnabled
+    ? [GEOCODE_STATUS_PENDING, GEOCODE_STATUS_NOT_FOUND_RAW_ADDRESS]
+    : [GEOCODE_STATUS_PENDING];
+
+  const forwardRows = await selectAddresses(
+    and(
+      eq(hamAddress.noGeocode, 0),
+      inArray(hamAddress.geocodeStatus, forwardStatuses),
+    ),
+    [hamAddress.geocodeStatus, hamAddress.addressAdministrativeArea, hamAddress.id],
+    batchSize,
+  );
+
+  const result = buildAddressMap(forwardRows);
+
+  // Query 2: fill any remaining batch capacity with the rolling re-geocode of already
+  // completed rows, oldest first. Its statuses are disjoint from query 1, so no overlap.
+  const remaining = batchSize - forwardRows.length;
+
+  if (remaining > 0 && isEnvEnabled("GEOCODE_REGEOCODE_ENABLED")) {
+    const regeocodeRows = await selectAddresses(
+      and(
+        eq(hamAddress.noGeocode, 0),
+        inArray(hamAddress.geocodeStatus, [GEOCODE_STATUS_SUCCESS, GEOCODE_STATUS_NOT_FOUND]),
+      ),
+      [hamAddress.geocodeTime, hamAddress.id],
+      remaining,
+    );
+
+    for (const [id, address] of buildAddressMap(regeocodeRows)) {
+      result.set(id, address);
+    }
+  }
+
+  return result;
+}
+
+async function selectAddresses(where: SQL | undefined, orderBy: (SQL | MySqlColumn)[], limit: number): Promise<addressRow[]> {
   const db = await getDb();
 
-  const rows = await db
+  return await db
     .select({
       id: hamAddress.id,
       street: hamAddress.addressAddressLine1,
@@ -250,15 +335,12 @@ async function getAdddresses(): Promise<Map<number, geocodeAddress>> {
       geocodeStatus: hamAddress.geocodeStatus,
     })
     .from(hamAddress)
-    .where(
-      and(
-        eq(hamAddress.geocodeStatus, GEOCODE_STATUS_PENDING),
-        or(isNull(hamAddress.geocodeProvider), ne(hamAddress.geocodeProvider, "mn")),
-      ),
-    )
-    .orderBy(hamAddress.addressAdministrativeArea, hamAddress.id)
-    .limit(parseInt(process.env.GEOCODE_BATCH_SIZE!));
+    .where(where)
+    .orderBy(...orderBy)
+    .limit(limit);
+}
 
+function buildAddressMap(rows: addressRow[]): Map<number, geocodeAddress> {
   const result = new Map<number, geocodeAddress>();
 
   rows.forEach(address => {
@@ -272,7 +354,7 @@ async function getAdddresses(): Promise<Map<number, geocodeAddress>> {
     result.set(address.id, {
       id: address.id,
       address: parts.join(", "),
-      originalStatus: address.geocodeStatus || GEOCODE_STATUS_PENDING,
+      originalStatus: address.geocodeStatus ?? GEOCODE_STATUS_PENDING,
     });
   });
 
