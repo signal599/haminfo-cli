@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../db-helper.js";
 import logger from "../logger.js";
-import { GEOCODE_STATUS_PO_BOX } from "../constants.js";
 
 export async function truncateTable(tableName: string) {
   const db = await getDb();
@@ -179,9 +178,9 @@ export async function setPoBox() {
 
   const rawSql = `
     UPDATE ham_address
-    SET geocode_status = ${GEOCODE_STATUS_PO_BOX}
+    SET no_geocode = 1
     WHERE address__address_line1 LIKE 'PO Box%'
-    AND (geocode_provider IS NULL OR geocode_provider != 'mn')
+    AND no_geocode = 0
   `;
 
   const result = await db.execute(sql.raw(rawSql));
