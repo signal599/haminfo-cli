@@ -179,7 +179,10 @@ export async function setPoBox() {
   const rawSql = `
     UPDATE ham_address
     SET no_geocode = 1
-    WHERE address__address_line1 LIKE 'PO Box%'
+    WHERE (
+      address__address_line1 LIKE 'PO Box%'
+      OR address__address_line1 LIKE 'P.O. Box%'
+    )
     AND no_geocode = 0
   `;
 
