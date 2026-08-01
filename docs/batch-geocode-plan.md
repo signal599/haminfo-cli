@@ -83,10 +83,24 @@ index("ham_address__regeocode").on(table.noGeocode, table.geocodeStatus, table.g
 
 ## 3. One-time migration SQL (run once, order matters)
 
-```sql
--- add column (or via drizzle push)
-ALTER TABLE ham_address ADD COLUMN no_geocode TINYINT NOT NULL DEFAULT 0;
+Run as **two separate executions**. SQL clients such as DBeaver validate all
+statements in a script against a metadata snapshot taken before the `ALTER` commits,
+so a single script that both adds `no_geocode` and then references it fails with
+"Unknown column 'no_geocode'". Running the DDL first, then the DML in a second
+execution, sidesteps this — the second execution sees the new column.
 
+Execution 1 — column + indexes (one atomic `ALTER`):
+
+```sql
+ALTER TABLE ham_address
+  ADD COLUMN no_geocode TINYINT NOT NULL DEFAULT 0,
+  ADD INDEX ham_address__forward   (no_geocode, geocode_status, address__administrative_area, id),
+  ADD INDEX ham_address__regeocode (no_geocode, geocode_status, geocode_time, id);
+```
+
+Execution 2 — data migration (order matters — 1a/1b before 2):
+
+```sql
 -- 1a. PO boxes (current status 3) -> no_geocode. Do this BEFORE step 2.
 UPDATE ham_address SET no_geocode = 1 WHERE geocode_status = 3;
 
