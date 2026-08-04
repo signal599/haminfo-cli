@@ -182,6 +182,7 @@ export async function setPoBox() {
     WHERE (
       address__address_line1 LIKE 'PO Box%'
       OR address__address_line1 LIKE 'P.O. Box%'
+      OR address__administrative_area IN ('AS', 'GU')
     )
     AND no_geocode = 0
   `;
@@ -189,7 +190,7 @@ export async function setPoBox() {
   const result = await db.execute(sql.raw(rawSql));
   await closeDb();
 
-  const msg = `${result[0].affectedRows} addresses set as PO Box`;
+  const msg = `${result[0].affectedRows} addresses set as no geocode`;
   console.log(msg);
   logger.info(msg);
 }
