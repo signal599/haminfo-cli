@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { hamAddress, zipcodes } from "../../db/schema.js";
 import { closeDb, getDb } from "../db-helper.js";
 import { GEOCODE_STATUS_PENDING } from "../constants.js";
@@ -49,7 +49,10 @@ async function doBatch(batchSize: number): Promise<string | undefined> {
     const pending = await db
       .select({ id: hamAddress.id })
       .from(hamAddress)
-      .where(eq(hamAddress.geocodeStatus, GEOCODE_STATUS_PENDING))
+      .where(and(
+        eq(hamAddress.noGeocode, 0),
+        eq(hamAddress.geocodeStatus, GEOCODE_STATUS_PENDING),
+      ))
       .limit(1);
 
     if (pending.length) {
