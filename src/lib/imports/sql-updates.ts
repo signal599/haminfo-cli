@@ -182,7 +182,7 @@ export async function setPoBox() {
     WHERE (
       address__address_line1 LIKE 'PO Box%'
       OR address__address_line1 LIKE 'P.O. Box%'
-      OR address__administrative_area IN ('AS', 'GU')
+      OR address__administrative_area IN ('AA', 'AE', 'AP', 'AS', 'GU')
     )
     AND no_geocode = 0
   `;
