@@ -170,7 +170,7 @@ program
   .argument("<string>", "address")
   .action(run(async (address) => {
     const response = await geocodeByGeocodio([address]);
-    console.log(response.code, response.data);
+    console.log(response.code, JSON.stringify(response.data));
   }));
 
 program
