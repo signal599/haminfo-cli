@@ -322,6 +322,56 @@ async function getAddresses(): Promise<Map<number, geocodeAddress>> {
   return result;
 }
 
+type oneAddressResult = {
+  id: number;
+  address: string;
+  geocodeStatus: number | null;
+  noGeocode: number | null;
+  code: number | null;
+  data: any;
+}
+
+// Manual investigation aid: run a single ham_address row through Geocodio and show the
+// raw response, so a failure or a rejected accuracy can be looked at in isolation. The
+// address string is built exactly as the batch builds it. Nothing is written back.
+export async function geocodeByAddressId(id: number): Promise<oneAddressResult | null> {
+  try {
+    const db = await getDb();
+
+    const rows = await db
+      .select({
+        id: hamAddress.id,
+        street: hamAddress.addressAddressLine1,
+        city: hamAddress.addressLocality,
+        state: hamAddress.addressAdministrativeArea,
+        zip: hamAddress.addressPostalCode,
+        geocodeStatus: hamAddress.geocodeStatus,
+        noGeocode: hamAddress.noGeocode,
+      })
+      .from(hamAddress)
+      .where(eq(hamAddress.id, id));
+
+    if (!rows.length) {
+      return null;
+    }
+
+    const address = buildAddressMap(rows).get(id)!;
+    const response = await geocodio.geocode([address.address]);
+
+    return {
+      id,
+      address: address.address,
+      geocodeStatus: rows[0].geocodeStatus,
+      noGeocode: rows[0].noGeocode,
+      code: response.code,
+      data: response.data,
+    };
+  }
+  finally {
+    await closeDb();
+  }
+}
+
 async function selectAddresses(where: SQL | undefined, orderBy: (SQL | MySqlColumn)[], limit: number): Promise<addressRow[]> {
   const db = await getDb();
 

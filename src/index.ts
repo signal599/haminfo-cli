@@ -20,7 +20,7 @@ import { writeLog } from "./lib/utils.js";
 import { geocode as geocodeByGeocodio } from "./lib/geocoding/geocodio.js";
 import { geocode as geocodeByGoogle, getFormattedAddress } from "./lib/geocoding/google.js";
 import { revalidateCache } from "./lib/revalidate-cache.js";
-import { geocodeBatch } from "./lib/geocoding/batch-geocode.js";
+import { geocodeBatch, geocodeByAddressId } from "./lib/geocoding/batch-geocode.js";
 import { zipGeocodeBatch } from "./lib/geocoding/zip-geocode.js";
 import { processExportQueue } from "./lib/exports/export-queue.js";
 import { checkImportCounts } from "./lib/imports/check-import.js";
@@ -171,6 +171,28 @@ program
   .action(run(async (address) => {
     const response = await geocodeByGeocodio([address]);
     console.log(response.code, JSON.stringify(response.data));
+  }));
+
+program
+  .command("geocode-by-address-id")
+  .description("Geocode one ham_address row by id, showing the address used and the raw Geocodio response")
+  .argument("<number>", "ham_address id")
+  .action(run(async (idArg) => {
+    const id = parseInt(idArg, 10);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error(`Invalid ham_address id '${idArg}'`);
+    }
+
+    const result = await geocodeByAddressId(id);
+
+    if (!result) {
+      throw new Error(`No ham_address row with id ${id}`);
+    }
+
+    console.log(`address: ${result.address}`);
+    console.log(`geocode_status: ${result.geocodeStatus} | no_geocode: ${result.noGeocode}`);
+    console.log(result.code, JSON.stringify(result.data));
   }));
 
 program
